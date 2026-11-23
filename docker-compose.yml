@@ -1,0 +1,49 @@
+# Local infrastructure for GridOps: PostgreSQL (Django database) and Redis (Celery broker/result backend).
+#
+# Version choices (as of 2026-11):
+#   - postgres:18  -> Django 6.1 supports PostgreSQL 15+. 18 is the newest major that was GA
+#                     (and tested) when Django 6.1 shipped. 19.0 is out but only weeks old.
+#   - redis:8.8    -> newest Redis server listed as supported by redis-py 8.1 (used by Celery 5.7 / kombu).
+#
+# Usage:
+#   cp .env.example .env
+#   docker compose up -d
+#   docker compose ps         # both services should report "healthy"
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gridops}
+      POSTGRES_USER: ${POSTGRES_USER:-gridops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18+ images keep data in a versioned subdirectory, so mount the parent dir.
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8.8-alpine
+    restart: unless-stopped
+    # Append-only persistence so queued Celery tasks survive a container restart.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
