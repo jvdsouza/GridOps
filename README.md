@@ -5,7 +5,8 @@ missing, duplicate and suspicious data, calculates charges and helps operators r
 discrepancies **without ever losing track of what happened**.
 
 The data is real: a year of 15-minute load readings from six Ausgrid zone substations in Sydney,
-about 210,000 values.
+about 210,000 values, from Ausgrid's public
+[distribution zone substation data](https://www.ausgrid.com.au/about-us/about-ausgrid/research-data-sets/distribution-zone-substation-data).
 
 > **Status:** work in progress, Milestone 1 of 4. The domain model and the validation and storage layer
 > are built and tested. The CSV import is designed (see [CSV import](discovery/csv-import.md)) and
@@ -108,8 +109,9 @@ More notes: [discovery/decisions.md](discovery/decisions.md).
 
 ## Working with real data
 
-The sample data is Ausgrid's FY26 zone substation load data: six substations, 15-minute MW values and
-209,472 data points. The data is published unvalidated, which makes it a good test bed. Findings from the
+The sample data is FY26 zone substation load data published by Ausgrid
+([Distribution zone substation data](https://www.ausgrid.com.au/about-us/about-ausgrid/research-data-sets/distribution-zone-substation-data)):
+six substations, 15-minute MW values and 209,472 data points. The data is published unvalidated, which makes it a good test bed. Findings from the
 analysis:
 
 - **Gaps:** Darlinghurst is missing 8 whole days (13–20 March 2026). There are 1,218 blank values in total.
@@ -211,6 +213,6 @@ metering/
     validators.py     pure single-reading rules
     service.py        chunked, idempotent, concurrency-safe ingestion
   tests.py
-data/                 Ausgrid FY26 zone substation CSVs
+data/                 Ausgrid FY26 zone substation CSVs (source linked above)
 discovery/            problem statement, milestones, domain model, decisions, import design
 ```
