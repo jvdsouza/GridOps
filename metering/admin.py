@@ -11,13 +11,15 @@ class CustomerAdmin(admin.ModelAdmin):
 
 @admin.register(Meter)
 class MeterAdmin(admin.ModelAdmin):
-    list_display = ["id", "customer", "interval_minutes"]
+    list_display = ["identifier", "customer", "interval_minutes", "records_export"]
+    list_filter = ["records_export"]
     list_select_related = ["customer"]
+    search_fields = ["identifier"]
 
 
 @admin.register(MeterReading)
 class MeterReadingAdmin(admin.ModelAdmin):
-    list_display = ["meter", "interval_start", "usage", "usage_unit"]
+    list_display = ["meter", "interval_start", "usage", "export", "usage_unit"]
     list_filter = ["meter"]
     date_hierarchy = "interval_start"
 

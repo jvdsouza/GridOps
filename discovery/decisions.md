@@ -10,6 +10,6 @@ For the production-grade version, using a cloud service to host a relational dat
 In the case of using Meter, there might be missing MeterReadings. An issue with a MeterReading is the discrepancy, so storing against a MeterReading key isn't reliable. If a Meter doesn't exist, it doesn't get meter readings, so no discrepancies can be recorded against its readings anyway.
 
 # RawReading table
-Using a raw meter reading table, we can save and refer to them to ensure we don't miss meter readings that are malformed or don't exist. The trade-off is that when it has tens of millions of readings, it can start to become something to plan for, reaching to tens of gigabytes. Policies that allow old readings to be moved to cheaper storage options, or deleted, can help alleviate this. 
+Using a raw meter reading table, we can save and refer to them to ensure we don't miss meter readings that are malformed or don't exist. The trade-off is that when it has tens of millions of readings, it can start to become something to plan for, reaching to tens of gigabytes. Policies that allow old readings to be moved to cheaper storage options, or deleted, can help alleviate this. We could also use a data lake to capture the incoming data, and then process into a data warehouse that is then pulled in by the dashboard.
 
 We can also use an ingesting table, for the case of duplicated readings. Reducing duplicated entries means not having redundant data that isn't used, saving more space and cost.

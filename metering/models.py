@@ -32,10 +32,22 @@ class Customer(models.Model):
 class Meter(models.Model):
     """A device supplying usage data at a fixed reading interval."""
 
+    identifier = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="How data sources identify this meter, e.g. a substation name like 'Croudace Bay 33_11kV'.",
+    )
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="meters")
     interval_minutes = models.PositiveSmallIntegerField(
         default=30,
         help_text="Expected length of each reading interval, in minutes.",
+    )
+    records_export = models.BooleanField(
+        default=False,
+        help_text=(
+            "Whether this meter measures flow in both directions. If so, a negative submitted "
+            "value is net export (e.g. solar); otherwise it is rejected as suspicious."
+        ),
     )
 
     class Meta:
@@ -47,11 +59,16 @@ class Meter(models.Model):
         ]
 
     def __str__(self):
-        return f"Meter {self.pk} ({self.customer})"
+        return self.identifier
 
 
 class MeterReading(models.Model):
-    """Electricity consumed by a meter during one interval (not a cumulative total)."""
+    """
+    Electricity a meter imported and exported during one interval (not a cumulative total).
+
+    Both values are non-negative. A source that reports one net value puts it in `usage`
+    when positive and in `export` when negative; net consumption is `usage - export`.
+    """
 
     class UsageUnit(models.TextChoices):
         KWH = "kWh", "kWh"
@@ -59,7 +76,13 @@ class MeterReading(models.Model):
     # db_index=False: the (meter, interval_start) unique constraint already serves meter lookups.
     meter = models.ForeignKey(Meter, on_delete=models.PROTECT, related_name="readings", db_index=False)
     interval_start = models.DateTimeField(help_text="Start of the interval this reading covers.")
-    usage = models.DecimalField(max_digits=12, decimal_places=4)
+    usage = models.DecimalField(max_digits=12, decimal_places=4, help_text="Energy imported from the grid.")
+    export = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        default=0,
+        help_text="Energy exported to the grid. Only non-zero for meters that record export.",
+    )
     usage_unit = models.CharField(max_length=10, choices=UsageUnit.choices, default=UsageUnit.KWH)
 
     class Meta:
@@ -76,10 +99,15 @@ class MeterReading(models.Model):
                 condition=Q(usage__gte=0),
                 name="meterreading_usage_non_negative",
             ),
+            models.CheckConstraint(
+                condition=Q(export__gte=0),
+                name="meterreading_export_non_negative",
+            ),
         ]
 
     def __str__(self):
-        return f"{self.meter_id} @ {self.interval_start:%Y-%m-%d %H:%M}: {self.usage} {self.usage_unit}"
+        text = f"{self.meter_id} @ {self.interval_start:%Y-%m-%d %H:%M}: {self.usage} {self.usage_unit}"
+        return f"{text} (export {self.export})" if self.export else text
 
 
 class RawReading(models.Model):
@@ -100,7 +128,15 @@ class RawReading(models.Model):
     # db_index=False: the (meter, interval_start) index already serves meter lookups.
     meter = models.ForeignKey(Meter, on_delete=models.PROTECT, related_name="raw_readings", db_index=False)
     interval_start = models.DateTimeField(help_text="Start of the interval, as submitted.")
-    usage = models.DecimalField(max_digits=12, decimal_places=4, help_text="Value as submitted; may be negative.")
+    # Wider than MeterReading.usage so source precision (e.g. 6 dp MW values) is kept, and
+    # nullable because a submission may be blank or not a number at all.
+    usage = models.DecimalField(
+        max_digits=20,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Value as submitted; may be negative. Empty if it was blank or not a number.",
+    )
     usage_unit = models.CharField(max_length=10, help_text="Unit as submitted, e.g. kWh or MW.")
     source = models.CharField(max_length=255, help_text="Where the submission came from, e.g. a file name or 'api'.")
     received_at = models.DateTimeField(default=timezone.now)

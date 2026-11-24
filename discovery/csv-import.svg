@@ -1,0 +1,121 @@
+<svg font-family="-apple-system-body, ui-sans-serif, -apple-system, system-ui, &quot;Segoe UI&quot;, Helvetica, &quot;Apple Color Emoji&quot;, Arial, sans-serif, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;" font-weight="400" fill="#94a3b8" viewBox="0 0 720 610" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <!-- Arrows and legend use mid grey (#94a3b8) so they read on light and dark backgrounds. -->
+  <g stroke="#94a3b8" stroke-width="1.5" fill="none">
+    <path d="M360 63 v14 m-4 -5 l4 5 4 -5"/>
+    <path d="M360 140 v15 m-4 -5 l4 5 4 -5"/>
+    <path d="M360 218 v15 m-4 -5 l4 5 4 -5"/>
+    <path d="M360 372 v15 m-4 -5 l4 5 4 -5"/>
+    <path d="M360 484 v15 m-4 -5 l4 5 4 -5"/>
+    <!-- seed -> resolve meters -->
+    <path d="M200 187 h19 m-5 -4 l5 4 -5 4"/>
+    <!-- resolve meters -> stop -->
+    <path d="M500 187 h19 m-5 -4 l5 4 -5 4"/>
+    <!-- adapter -> branches -->
+    <path d="M500 255 h19 m-5 -4 l5 4 -5 4"/>
+    <path d="M500 303 h19 m-5 -4 l5 4 -5 4"/>
+    <path d="M500 351 h19 m-5 -4 l5 4 -5 4"/>
+    <!-- ingest -> database -->
+    <path d="M500 436 h19 m-5 -4 l5 4 -5 4"/>
+  </g>
+
+  <!-- Entry point -->
+  <rect x="220" y="10" width="280" height="53" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="234" y="31" font-size="12" font-weight="600" fill="#17253c">manage.py import_readings</text>
+  <text x="234" y="48" font-size="10" fill="#475569">One or more Ausgrid zone substation CSVs</text>
+
+  <!-- 1 Read header -->
+  <rect x="220" y="78" width="280" height="62" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="234" y="98" font-size="12" font-weight="600" fill="#17253c">1  Read the header</text>
+  <text x="234" y="114" font-size="10" fill="#475569">Map the 96 period-ending labels by name,</text>
+  <text x="234" y="129" font-size="10" fill="#475569">not position (h:00 columns are out of order)</text>
+
+  <!-- 2 Resolve meters -->
+  <rect x="220" y="156" width="280" height="62" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="234" y="176" font-size="12" font-weight="600" fill="#17253c">2  Resolve meters</text>
+  <text x="234" y="192" font-size="10" fill="#475569">Zone Substation → Meter.identifier</text>
+  <text x="234" y="207" font-size="10" fill="#475569">Every file is checked before anything is stored</text>
+
+  <rect x="10" y="156" width="190" height="62" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="22" y="176" font-size="12" font-weight="600" fill="#17253c">seed_substations</text>
+  <text x="22" y="192" font-size="10" fill="#475569">Run once: 6 meters, 15 min</text>
+  <text x="22" y="207" font-size="10" fill="#475569">Croudace Bay records export</text>
+
+  <rect x="520" y="156" width="190" height="62" rx="9" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="532" y="176" font-size="12" font-weight="600" fill="#7f1d1d">Stop the import</text>
+  <text x="532" y="192" font-size="10" fill="#991b1b">Unknown substation, or a</text>
+  <text x="532" y="207" font-size="10" fill="#991b1b">meter that isn't 15 min</text>
+
+  <!-- 3 Adapter -->
+  <rect x="220" y="234" width="280" height="138" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="234" y="254" font-size="12" font-weight="600" fill="#17253c">3  Adapter (generator)</text>
+  <text x="234" y="272" font-size="10" fill="#475569">For each row and each label:</text>
+  <text x="234" y="287" font-size="10" fill="#475569">end = Date + label in Australia/Sydney</text>
+  <text x="234" y="302" font-size="10" fill="#475569">(label 24:00 is the next day's 00:00)</text>
+  <text x="234" y="317" font-size="10" fill="#475569">start = end in UTC − 15 min</text>
+  <text x="234" y="332" font-size="10" fill="#475569">Yield a ReadingSubmission, value as text</text>
+  <text x="234" y="347" font-size="10" fill="#475569">(keeps 6 dp and 7.07E-4 exact)</text>
+
+  <rect x="10" y="234" width="190" height="138" rx="9" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="4 3"/>
+  <text x="22" y="254" font-size="12" font-weight="600" fill="#17253c">Why DST needs care</text>
+  <text x="22" y="272" font-size="10" fill="#475569">Every day has 96 values, even</text>
+  <text x="22" y="287" font-size="10" fill="#475569">the 23 h and 25 h days.</text>
+  <text x="22" y="302" font-size="10" fill="#475569">5 Oct 2025: Ausgrid copies the</text>
+  <text x="22" y="317" font-size="10" fill="#475569">02:00 value into the lost hour.</text>
+  <text x="22" y="332" font-size="10" fill="#475569">5 Apr 2026: the repeated hour</text>
+  <text x="22" y="347" font-size="10" fill="#475569">is sent once, so 4 intervals</text>
+  <text x="22" y="362" font-size="10" fill="#475569">are left as a gap.</text>
+
+  <rect x="520" y="234" width="190" height="42" rx="9" fill="#fef3c7" stroke="#fcd34d"/>
+  <text x="532" y="251" font-size="11" font-weight="600" fill="#78350f">Blank → skip</text>
+  <text x="532" y="266" font-size="10" fill="#92400e">Counted; becomes a gap later</text>
+
+  <rect x="520" y="282" width="190" height="42" rx="9" fill="#fef3c7" stroke="#fcd34d"/>
+  <text x="532" y="299" font-size="11" font-weight="600" fill="#78350f">Time doesn't exist → skip</text>
+  <text x="532" y="314" font-size="10" fill="#92400e">DST start, 5 Oct 02:00–02:45</text>
+
+  <rect x="520" y="330" width="190" height="42" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="532" y="347" font-size="11" font-weight="600" fill="#17253c">Ambiguous → first pass</text>
+  <text x="532" y="362" font-size="10" fill="#475569">DST end, 5 Apr: fold=0</text>
+
+  <!-- 4 ingest_readings (existing) -->
+  <rect x="220" y="388" width="280" height="96" rx="9" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="234" y="408" font-size="12" font-weight="600" fill="#17253c">4  ingest_readings (existing)</text>
+  <text x="234" y="426" font-size="10" fill="#475569">Chunks of 5,000, one transaction each</text>
+  <text x="234" y="441" font-size="10" fill="#475569">Validate, then INSERT … ON CONFLICT</text>
+  <text x="234" y="456" font-size="10" fill="#475569">DO NOTHING</text>
+  <text x="234" y="471" font-size="10" fill="#475569">source = "ausgrid-csv:&lt;file name&gt;"</text>
+
+  <rect x="10" y="388" width="190" height="96" rx="9" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="4 3"/>
+  <text x="22" y="408" font-size="12" font-weight="600" fill="#17253c">Running a file again</text>
+  <text x="22" y="426" font-size="10" fill="#475569">Stored values come back as</text>
+  <text x="22" y="441" font-size="10" fill="#475569">duplicates, so no new readings.</text>
+  <text x="22" y="456" font-size="10" fill="#475569">Repeat conflicts are deduped</text>
+  <text x="22" y="471" font-size="10" fill="#475569">later, with gap detection.</text>
+
+  <rect x="520" y="388" width="190" height="96" rx="9" fill="#dcfce7" stroke="#86efac"/>
+  <text x="532" y="408" font-size="12" font-weight="600" fill="#14532d">Database writes</text>
+  <text x="532" y="426" font-size="10" fill="#166534">MeterReading: new intervals</text>
+  <text x="532" y="441" font-size="10" fill="#166534">RawReading: every value sent</text>
+  <text x="532" y="456" font-size="10" fill="#166534">Discrepancy: rejected values,</text>
+  <text x="532" y="471" font-size="10" fill="#166534">or a duplicate that differs</text>
+
+  <!-- 5 Summary -->
+  <rect x="220" y="500" width="280" height="62" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="234" y="520" font-size="12" font-weight="600" fill="#17253c">5  Print a summary per file</text>
+  <text x="234" y="536" font-size="10" fill="#475569">accepted · duplicate · conflict · rejected</text>
+  <text x="234" y="551" font-size="10" fill="#475569">skipped_blank · skipped_dst</text>
+
+  <!-- Legend -->
+  <g font-size="10">
+    <rect x="10" y="584" width="12" height="12" rx="3" fill="#dbeafe" stroke="#93c5fd"/>
+    <text x="28" y="594">existing code</text>
+    <rect x="120" y="584" width="12" height="12" rx="3" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="138" y="594">skipped, counted</text>
+    <rect x="246" y="584" width="12" height="12" rx="3" fill="#fee2e2" stroke="#fca5a5"/>
+    <text x="264" y="594">stops the import</text>
+    <rect x="372" y="584" width="12" height="12" rx="3" fill="#dcfce7" stroke="#86efac"/>
+    <text x="390" y="594">tables written</text>
+    <rect x="484" y="584" width="12" height="12" rx="3" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="3 2"/>
+    <text x="502" y="594">note</text>
+  </g>
+</svg>
