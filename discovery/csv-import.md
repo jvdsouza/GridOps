@@ -1,8 +1,45 @@
 # CSV import
 
-How `manage.py import_readings` will turn Ausgrid zone substation CSVs into readings.
-The command is a thin adapter: all validation and storage goes through the existing
+How `manage.py import_readings` turns Ausgrid zone substation CSVs into readings.
+The command is a thin layer: all validation and storage goes through the existing
 `ingest_readings()` in `metering/ingestion/service.py`.
+
+| Piece | File |
+|---|---|
+| Adapter (pure, no database) | `metering/ingestion/sources/ausgrid_csv.py`: `check_header`, `read_substations`, `period_end_utc`, `iter_submissions` |
+| Import command | `metering/management/commands/import_readings.py` |
+| Meter setup | `metering/management/commands/seed_substations.py` |
+| Tests | `AusgridAdapterTests`, `ImportReadingsCommandTests` and `SeedSubstationsCommandTests` in `metering/tests.py` |
+
+The import works in two passes. **Pass 1** checks every file's header and resolves every substation
+to a meter, storing nothing. **Pass 2** streams each file through the adapter into `ingest_readings`.
+
+## On the real FY26 files
+Run through the adapter (no database needed):
+
+| File | Days | Submitted | Blank skipped | DST skipped |
+|---|---|---|---|---|
+| Croudace Bay 33_11kV | 365 | 35,028 | 8 | 4 |
+| Crows Nest 132_11kV | 365 | 34,946 | 90 | 4 |
+| Croydon 132_11kV | 365 | 34,944 | 92 | 4 |
+| Dalley St 132_11kV | 365 | 34,947 | 89 | 4 |
+| Darling Harbour 132_11kV | 365 | 34,828 | 208 | 4 |
+| Darlinghurst 33_11kV | 357 | 33,537 | 731 | 4 |
+| **Total** | **2,182** | **208,230** | **1,218** | **24** |
+
+Submitted, blank and DST add up to 209,472 values, which is every value in the files. No interval is
+submitted twice within a file. Parsing takes about 0.1 s per file.
+
+**Imported into Postgres (2026-11-24, dev machine, Postgres 18 in Docker):**
+- First run: every submitted value was accepted, with 0 duplicates and 0 rejected. Each file took 3.7–4.0 s, roughly
+  8,800 readings a second including the raw records, and all six files took about 23 s.
+- Second run: all 208,230 came back as duplicates, with 0 conflicting, in 3.4–3.6 s per file.
+- Database afterwards:
+  - 208,230 MeterReadings
+  - 416,460 RawReadings (one `accepted` and one `duplicate` per value)
+  - 0 Discrepancies
+  - 3,750 readings with export, all on Croudace Bay, matching its negative values
+  - each meter runs from 2025-04-30 14:00 UTC (1 May 00:00 AEST) to 2026-04-30 13:45 UTC
 
 ![csv import](csv-import.svg)
 

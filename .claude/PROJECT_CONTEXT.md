@@ -16,12 +16,17 @@ Milestone 1: finish the validation layer for reading ingestion. Done means real 
 - **`metering` app:**
   - Models: Customer, Meter (`identifier` unique, `interval_minutes`, `records_export`), MeterReading (`usage` and `export`, both ≥ 0, unique per meter and `interval_start`), RawReading, BillingPeriod, Discrepancy (optional `raw_reading`).
   - `domain-model.md` matches the models.
-- **Migrations:** `0001_initial` is committed. `0002_meter_identifier_export` is uncommitted. **Neither is applied to the dev DB.** The user runs `migrate` themselves.
+- **Migrations:** `0001` and `0002` are committed and applied to the dev DB (2026-11-24). The user runs `migrate` themselves.
 - **Validation layer:** `metering/ingestion/`.
   - `validators.py`: pure checks on one reading (numeric, unit kWh/MW, timezone-aware, aligned to the interval, interval finished, sign versus `records_export`).
   - `service.py`: `ingest_readings()` processes chunks of 5,000, each in its own transaction. It inserts with `INSERT … ON CONFLICT DO NOTHING` via `unnest`. Outcomes: accepted, duplicate, conflict (duplicate with a different value, which adds a discrepancy), rejected (adds a `suspicious_reading` discrepancy), unknown meter (counted only).
-- **Tests:** `uv run python manage.py test metering` gives 28 tests, all passing.
-- **Uncommitted work:** the ingestion package, migration 0002, and changes to models, admin, tests and the domain doc.
+- **CSV import:** built.
+  - `metering/ingestion/sources/ausgrid_csv.py` is a pure adapter: `check_header`, `read_substations`, `period_end_utc` (DST round trip) and `iter_submissions`.
+  - Commands: `seed_substations` and `import_readings` (two passes, `--dry-run`).
+  - On the real files the adapter submits 208,230 values and skips 1,218 blanks and 24 DST labels, which reconciles with all 209,472 values.
+  - Run end to end on 2026-11-24. The dev DB now holds 208,230 MeterReadings and 416,460 RawReadings (two runs), with 0 discrepancies; export is on Croudace Bay only (3,750 readings). About 4 s per 35k-value file; the second run gave all duplicates. In a `!` command use bash syntax (`data/*.csv`), not PowerShell.
+- **Tests:** `uv run python manage.py test metering` gives 48 tests, all passing.
+- **Uncommitted work (2026-11-24):** the CSV import, its tests, the reworked `discovery/csv-import.svg` and `.md`, and README updates.
 
 ## Data facts (`data/*.csv`, Ausgrid zone substation FY26)
 - Source: Ausgrid's "Distribution Zone Substation Data 2026" zip (May 2025 to April 2026). Ausgrid keeps the copyright, so `data/` is git-ignored. The README explains how to download it.
@@ -49,17 +54,14 @@ Milestone 1: finish the validation layer for reading ingestion. Done means real 
 - 2026-11-24 — On the DST-start day the CSV import skips labels whose local time doesn't exist; on the DST-end day it uses `fold=0` for ambiguous labels — why: `zoneinfo` would silently shift a time that doesn't exist onto a real instant and clash with it.
 
 ## Next steps
-1. Build the CSV import as designed in `discovery/csv-import.md` and `.svg`:
-   - `seed_substations`
-   - an adapter in `metering/ingestion/sources/ausgrid_csv.py`
-   - `manage.py import_readings` with `--dry-run`
-   - tests for column mapping, `24:00`, both DST days, blanks and `7.07E-4`
+The full checklist is in `discovery/milestone-1-todo.md`: import run, gap detection, **Tariff model (not started)**, **API (none yet, framework not chosen)**, corrections write-up.
+1. Commit the CSV import work. (Done 2026-11-24: the import was run for real, counts checked, re-run gave all duplicates, timings recorded.)
 2. Add a time range (`period_start`/`period_end`) to Discrepancy. Then:
    - build a Celery task for missing intervals using `generate_series`, recording one discrepancy per gap and resolving it when late readings arrive;
    - skip creating a discrepancy when an open one already exists, so re-running an import doesn't add more. This has to cover `duplicate_reading` too: a conflicting value raises one again on every run.
 3. Write a real concurrency test (`TransactionTestCase` with two threads racing on the same interval). This feeds `key-actions.md` #2.
 4. Spike detection against each meter's history, as a Celery task.
-5. Time a full 35,000-row file.
+5. (Done: a full 35,000-row file imports in about 4 s.)
 6. Later: a design for discrepancy resolution and corrections (`resolved_at`, notes, replacing a reading while keeping the original); the Milestone 1 API.
 
 ## Open questions / blockers

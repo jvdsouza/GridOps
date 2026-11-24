@@ -8,9 +8,8 @@ The data is real: a year of 15-minute load readings from six Ausgrid zone substa
 about 210,000 values, from Ausgrid's public
 [distribution zone substation data](https://www.ausgrid.com.au/about-us/about-ausgrid/research-data-sets/distribution-zone-substation-data).
 
-> **Status:** work in progress, Milestone 1 of 4. The domain model and the validation and storage layer
-> are built and tested. The CSV import is designed (see [CSV import](discovery/csv-import.md)) and
-> is the next piece of work.
+> **Status:** work in progress, Milestone 1 of 4. The domain model, the validation and storage layer and
+> the CSV import are built and tested (see [CSV import](discovery/csv-import.md)). Gap detection is next.
 
 ---
 
@@ -21,7 +20,7 @@ about 210,000 values, from Ausgrid's public
 | **Problem** | Meter data arrives late, twice, in mixed units, with gaps and with bad values. Bills depend on it, so every correction has to leave an audit trail. |
 | **Stack** | Python 3.13 · Django 6.1 · PostgreSQL 18 · Celery 5.7 with Redis 8.8 · Docker Compose · uv. Planned: React and GraphQL. |
 | **What it shows** | Domain modelling, data integrity enforced in the database, safe retries (idempotency), concurrency-safe ingestion and documented trade-offs. |
-| **Tests** | 28 tests: unit tests for the validation rules and database-backed tests for ingestion. |
+| **Tests** | 48 tests: unit tests for the validation rules and the CSV adapter, and database-backed tests for ingestion and the import commands. |
 
 ## What the system does
 
@@ -46,11 +45,14 @@ about 210,000 values, from Ausgrid's public
 - Docker Compose for Postgres and Redis, Django settings loaded from `.env`, a Celery app, and a `/health/` endpoint
   that checks the database, the cache and the Celery broker.
 - Domain model with database-level constraints ([domain model](discovery/domain-model.md)).
-- The validation and ingestion service (`metering/ingestion/`) with 28 tests.
-- An analysis of the real data, plus the import design, which turned up a daylight-saving problem (below).
+- The validation and ingestion service (`metering/ingestion/`).
+- An analysis of the real data, which turned up a daylight-saving problem (below).
+- The CSV import: `seed_substations` and `import_readings`, with a DST-aware adapter. On the real files it
+  submits 208,230 values, and every one of the 209,472 values in the files is accounted for. A full year for
+  one substation (about 35,000 readings) imports in about 4 s. Running it again stores nothing new: every value
+  comes back as a duplicate and no discrepancies are created.
 
 **Next**
-- CSV import command.
 - Gap detection as a Celery task, with discrepancies that don't duplicate.
 - A reproduced concurrency bug with a written postmortem.
 - Spike detection.
@@ -177,6 +179,16 @@ uv run python manage.py test metering
   - unknown meters
   - independent chunk transactions
   - storing export
+- **CSV adapter (unit tests, no database):**
+  - columns mapped by name, `24:00`, and values passed on as text
+  - skipping blanks
+  - both DST days: the 23-hour day gives 92 contiguous intervals, and the 25-hour day leaves exactly 4 gaps
+  - malformed headers, bad dates and unknown substations
+- **Import commands (against Postgres):**
+  - an unknown substation or a wrong meter interval stops the import before anything is stored
+  - re-running a file adds no readings or discrepancies
+  - `--dry-run` stores nothing
+  - `seed_substations` is safe to re-run and never changes an existing meter
 
 **Planned:** a `TransactionTestCase` with two threads racing on the same interval. It will reproduce a real
 concurrency bug for the postmortem in Milestone 4.
@@ -205,6 +217,10 @@ uv run python manage.py runserver 127.0.0.1:8000
 
 # Celery worker (on Windows, add --pool=solo)
 uv run celery -A gridops worker -l info
+
+# Load the sample data (see Getting the data below)
+uv run python manage.py seed_substations
+uv run python manage.py import_readings data/*.csv     # add --dry-run to check without storing
 ```
 
 The tests don't need the data files.
@@ -237,6 +253,11 @@ metering/
   ingestion/
     validators.py     pure single-reading rules
     service.py        chunked, idempotent, concurrency-safe ingestion
+    sources/
+      ausgrid_csv.py  Ausgrid CSV adapter: column mapping, Sydney time and DST
+  management/commands/
+    seed_substations.py
+    import_readings.py
   tests.py
 data/                 Ausgrid CSVs (git-ignored; see Getting the data)
 discovery/            problem statement, milestones, domain model, decisions, import design
