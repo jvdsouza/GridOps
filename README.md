@@ -150,10 +150,16 @@ Full rules and field lists: [discovery/domain-model.md](discovery/domain-model.m
 
 ## Assumptions
 
+- **Zone substations stand in for customer meters**, because individual customer meter data is private. In reality a
+  zone substation belongs to the network operator and supplies thousands of customers. Here all six are assigned to one
+  placeholder customer, so the ingestion and data-quality rules can be exercised on real data. Charges calculated from
+  them won't be realistic. Real retail data would add estimated-then-actual revisions and separate import and export
+  channels (see [what's left](discovery/milestone-1-todo.md)).
 - Each meter belongs to one customer and reports at a fixed interval.
 - Readings are consumption per interval, not cumulative register totals.
 - Readings can arrive out of order, more than once, or never.
-- Croudace Bay's negative values are solar export. This fits the data, but Ausgrid hasn't confirmed it.
+- Croudace Bay's negative values are reverse flow from rooftop solar across its area, treated as export. This fits the
+  data, but Ausgrid hasn't confirmed it.
 - On the day clocks go back, the single set of values for the repeated hour belongs to the first pass.
 - Interval alignment is measured from UTC midnight. This is correct for whole-hour offsets such as Sydney's.
 

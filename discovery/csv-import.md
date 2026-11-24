@@ -99,7 +99,9 @@ After each file, the command prints `accepted · duplicate · conflict · reject
 `--dry-run` parses and resolves the file without storing anything.
 
 ## Assumptions
-- Croudace Bay's negative values are solar export (`records_export=True`). The data doesn't confirm this.
+- Croudace Bay's negative values are reverse flow from rooftop solar across its area, treated as export (`records_export=True`).
+  The data doesn't confirm this.
+- The substations stand in for customer meters under one placeholder customer (see [domain-model.md](domain-model.md)).
 - On the DST-end day, the single set of `02:00`–`02:45` labels belongs to the first pass (AEDT).
 - On the DST-start day, the `03:00` value is the real reading for 01:45–02:00 AEST and the skipped labels are padding.
   In most files all five values are identical. Croudace Bay's differ, so its skipped values may not be pure padding.

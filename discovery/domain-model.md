@@ -15,6 +15,17 @@ For V1, assume:
 - reports values in kWh, or in MW which are converted to kWh for the interval, 
 - and that all readings are interval consumption values rather than cumulative meter total
 
+The sample data comes from zone substations, not customer meters, because individual customer meter data is private.
+In reality a zone substation is network equipment. It belongs to the distribution network (Ausgrid) and supplies thousands
+of customers. A retailer bills each customer's own meter instead. Here each substation stands in for an interval meter,
+and all six are assigned to one placeholder customer, `Ausgrid zone substations (sample data)`, created by `seed_substations`.
+So:
+- the model is still the retail one: a customer has many meters, and each meter belongs to one customer;
+- Croudace Bay's negative values are reverse flow from rooftop solar across its area, not one customer's export.
+  They're treated as export to exercise that path;
+- charges calculated from these readings will be technically correct but not realistic, because one "customer" uses as
+  much as a suburb (Darling Harbour alone used about 254 GWh in the year).
+
 A meter should have at most one accepted reading for a given interval start.
 Usage and export cannot be negative. A negative submitted value means net export (e.g. solar): it is accepted as export only from a meter that records export, and rejected as suspicious from any other meter.
 Readings can arrive out of chronological order.

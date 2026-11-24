@@ -41,9 +41,31 @@ Implement a Django/PostgreSQL API that ingests readings and enforces basic const
 - [ ] Write up how a reading, a usage calculation, an issued bill and an adjustment differ
 - [ ] Explain how a correction replaces a reading while keeping the original
 - [ ] Discrepancy resolution fields (`resolved_at`, notes)
+- [ ] **Legitimate revisions (estimated, then actual).** Retail data from the NEM12 format carries a quality flag on every value:
+  A (actual), E (estimated), S (substituted), F (final substitute).
+  - Today a different value for a stored interval is a conflict and opens a `duplicate_reading` discrepancy,
+    so every normal estimate → actual update would raise one.
+  - Add the quality flag to readings, plus a ranking rule: an actual replaces an estimate, an estimate never replaces an actual,
+    and two values of the same quality still conflict.
+  - Keep earlier versions (RawReading already holds the history) instead of overwriting.
 
 ## Can slip to a later milestone
 - [ ] A concurrency race test: a `TransactionTestCase` with two threads on the same interval (it feeds the Milestone 4 postmortem)
 - [ ] Spike detection against each meter's history
 - [ ] Decide whether billing periods may overlap (an exclusion constraint needs `btree_gist`)
 - [ ] Confirm the discrepancy types and billing period statuses
+- [ ] **Separate import and export channels.** NEM12 sends consumption (E1) and export (B1) as two positive data streams,
+  not one signed value.
+  - Add a channel (direction) to `ReadingSubmission` in place of splitting a signed value.
+  - When the second channel arrives for an interval that already has a reading, fill in its empty column rather than
+    counting it as a duplicate. `ON CONFLICT DO NOTHING` becomes a conditional update.
+- [ ] **A NEM12 adapter** next to `ausgrid_csv.py`. Its times are fixed AEST market time with no daylight saving,
+  which is simpler than Ausgrid's.
+- [ ] **Retail identifiers:** a NMI with its checksum, the meter serial, and the NMI suffix for each channel, instead of free text.
+- [ ] **Basic (accumulation) meters** report a running total read every quarter. They're out of scope: state it as a limitation
+  rather than building it.
+
+## Notes
+- Zone substations stand in for customer meters, because individual customer data is private. They're assigned to a
+  single placeholder customer, so charges calculated from them won't be realistic. (Recorded in the README and `domain-model.md`.)
+- An optional `Meter.kind` with values `revenue` and `network` would keep substations out of billing. Consider it alongside the Tariff model.

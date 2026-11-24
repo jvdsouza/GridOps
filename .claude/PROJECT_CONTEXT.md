@@ -53,6 +53,8 @@ Milestone 1: finish the validation layer for reading ingestion. Done means real 
 - 2026-11-24 — An unknown substation stops the import before anything is stored; meters come from a one-off `seed_substations` — why: a typo fails loudly — rejected: a `--create-meters` flag, and a nullable `RawReading.meter` with `meter_ref`.
 - 2026-11-24 — On the DST-start day the CSV import skips labels whose local time doesn't exist; on the DST-end day it uses `fold=0` for ambiguous labels — why: `zoneinfo` would silently shift a time that doesn't exist onto a real instant and clash with it.
 
+- 2026-11-24 — Keep the retail focus; zone substations are only stand-ins for customer meters (assigned to a placeholder customer) — why: billing and corrections (Milestone 3, key-actions #1) are the parts most relevant to Kraken, and the substation data still tests ingestion well — rejected: pivoting to a network-operator tool (it would drop billing). The retail-data gaps (estimate → actual revisions, E1/B1 channels, NEM12 adapter, NMI) are in `discovery/milestone-1-todo.md`.
+
 ## Next steps
 The full checklist is in `discovery/milestone-1-todo.md`: import run, gap detection, **Tariff model (not started)**, **API (none yet, framework not chosen)**, corrections write-up.
 1. Commit the CSV import work. (Done 2026-11-24: the import was run for real, counts checked, re-run gave all duplicates, timings recorded.)
