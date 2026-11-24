@@ -24,6 +24,7 @@ Milestone 1: finish the validation layer for reading ingestion. Done means real 
 - **Uncommitted work:** the ingestion package, migration 0002, and changes to models, admin, tests and the domain doc.
 
 ## Data facts (`data/*.csv`, Ausgrid zone substation FY26)
+- Source: Ausgrid's "Distribution Zone Substation Data 2026" zip (May 2025 to April 2026). Ausgrid keeps the copyright, so `data/` is git-ignored. The README explains how to download it.
 - Six substations with 15-minute MW values; the unit is always MW. 209,472 values, 1,218 blank, one written as `7.07E-4`, up to 6 decimal places.
 - Darlinghurst has 8 days missing (2026-03-13 to 2026-03-20), which makes a good test case for gap detection.
 - Only Croudace Bay has negative values: 3,750, all between 08:00 and 17:59, peaking around midday and seasonal. That's very likely solar export, but nothing in the data confirms it.

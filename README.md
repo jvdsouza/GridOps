@@ -109,9 +109,13 @@ More notes: [discovery/decisions.md](discovery/decisions.md).
 
 ## Working with real data
 
-The sample data is FY26 zone substation load data published by Ausgrid
-([Distribution zone substation data](https://www.ausgrid.com.au/about-us/about-ausgrid/research-data-sets/distribution-zone-substation-data)):
-six substations, 15-minute MW values and 209,472 data points. The data is published unvalidated, which makes it a good test bed. Findings from the
+The sample data is zone substation load data published by Ausgrid
+([Distribution zone substation data](https://www.ausgrid.com.au/about-us/about-ausgrid/research-data-sets/distribution-zone-substation-data)).
+It covers May 2025 to April 2026 for six substations, with 15-minute MW values: 209,472 data points.
+Ausgrid owns the copyright, so the files aren't included in this repo. See [Getting the data](#getting-the-data).
+
+Ausgrid says the data comes raw from its SCADA and metering systems and isn't validated. Some MW values are
+estimated from current using an assumed power factor. That makes it a good test bed. Findings from the
 analysis:
 
 - **Gaps:** Darlinghurst is missing 8 whole days (13–20 March 2026). There are 1,218 blank values in total.
@@ -119,7 +123,7 @@ analysis:
   are correct, so the import maps columns by header name, never by position.
 - **Negative values:** only one substation (Croudace Bay) has them: 3,750 values, all between 08:00 and 18:00,
   peaking at midday and varying with the season. That fits solar export.
-- **Daylight saving:** times are Sydney clock time, yet **every day has exactly 96 values**, including the
+- **Daylight saving:** times are Sydney clock time (AEST in winter and AEDT in summer, as Ausgrid states), yet **every day has exactly 96 values**, including the
   23-hour and 25-hour changeover days. Ausgrid fills the skipped hour with repeated values and sends the
   repeated hour only once. A naive conversion with Python's `zoneinfo` would quietly move the non-existent
   times onto real ones and clash with real readings. The import detects these times and skips them
@@ -203,6 +207,27 @@ uv run python manage.py runserver 127.0.0.1:8000
 uv run celery -A gridops worker -l info
 ```
 
+The tests don't need the data files.
+
+### Getting the data
+
+Ausgrid keeps the copyright on its zone substation data, so the CSVs aren't committed (`data/` is git-ignored).
+To get them:
+
+1. Open Ausgrid's [Distribution zone substation data](https://www.ausgrid.com.au/about-us/about-ausgrid/research-data-sets/distribution-zone-substation-data)
+   page and download **"Distribution Zone Substation Data 2026"**. It's a zip of about 25 MB with one CSV per
+   substation. Each Ausgrid year runs from May to April; in these files the `year` column is `2026` and the
+   dates run from 2025-05-01 to 2026-04-30.
+2. Extract these six files into `data/`:
+   - `Croudace Bay 33_11kV FY26.csv`
+   - `Crows Nest 132_11kV FY26.csv`
+   - `Croydon 132_11kV FY26.csv`
+   - `Dalley St 132_11kV FY26.csv`
+   - `Darling Harbour 132_11kV FY26.csv`
+   - `Darlinghurst 33_11kV FY26.csv`
+
+   Any other substation in the zip works too, as long as a matching meter exists.
+
 ## Repository layout
 
 ```
@@ -213,6 +238,6 @@ metering/
     validators.py     pure single-reading rules
     service.py        chunked, idempotent, concurrency-safe ingestion
   tests.py
-data/                 Ausgrid FY26 zone substation CSVs (source linked above)
+data/                 Ausgrid CSVs (git-ignored; see Getting the data)
 discovery/            problem statement, milestones, domain model, decisions, import design
 ```
